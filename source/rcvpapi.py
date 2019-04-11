@@ -34,6 +34,8 @@ class CVPCON():
         self.cvp_api = {
             'authenticate': 'cvpservice/login/authenticate.do',
             'logout': 'cvpservice/login/logout.do',
+            'checkSession': 'cvpservice/login/home.do',
+            'checkVersion': 'cvpservice/cvpInfo/getCvpInfo.do',
             'searchTopo': 'cvpservice/provisioning/searchTopology.do',
             'getContainer': 'cvpservice/inventory/containers?name=',
             'getContainerInfo': '/cvpservice/provisioning/getContainerInfoById.do',
@@ -71,6 +73,24 @@ class CVPCON():
         """
         response = requests.request(c_meth,"https://{}/".format(self.cvp_url) + url,json=payload,headers=self.headers,verify=False)
         return(response.json())
+    
+    def _checkSession(self):
+        if 'Cookie' in self.cvp_headers.keys():
+            pass
+        else:
+            pass
+        response = self._sendRequest("GET",self.cvp_api['checkSession'])
+        if type(response) == dict:
+            if response['data'] == 'success':
+                return(True)
+            else:
+                return(False)
+        else:
+            return(False)
+
+    def checkVersion(self):
+        if self._checkSession():
+            return(self._sendRequest("GET",self.cvp_api['cvpservice/checkVersion']))
     
     def saveTopology(self):
         """
