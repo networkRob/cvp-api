@@ -75,7 +75,7 @@ class CVPCON():
         return(response.json())
     
     def _checkSession(self):
-        if 'Cookie' in self.cvp_headers.keys():
+        if 'Cookie' in self.headers.keys():
             pass
         else:
             pass
