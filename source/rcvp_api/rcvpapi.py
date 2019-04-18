@@ -90,7 +90,7 @@ class CVPCON():
 
     def checkVersion(self):
         if self._checkSession():
-            return(self._sendRequest("GET",self.cvp_api['cvpservice/checkVersion']))
+            return(self._sendRequest("GET",self.cvp_api['checkVersion']))
     
     def saveTopology(self):
         """
