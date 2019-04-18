@@ -1,3 +1,0 @@
-import rcvpapi
-
-name = "rcvpapi"
