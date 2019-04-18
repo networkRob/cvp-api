@@ -1,2 +1,2 @@
-source/*/build
-source/*/*.egg-info
+source/build
+source/*.egg-info
