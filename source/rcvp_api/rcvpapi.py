@@ -37,6 +37,11 @@ class CVPCON():
             'logout': 'cvpservice/login/logout.do',
             'checkSession': 'cvpservice/login/home.do',
             'checkVersion': 'cvpservice/cvpInfo/getCvpInfo.do',
+            'addConfiglet': 'cvpservice/configlet/addConfiglet.do',
+            'addConfigletBuilder': 'cvpservice/configlet/addConfigletBuilder.do',
+            'getConfigletByName': 'cvpservice/configlet/getConfigletByName.do',
+            'updateConfiglet': 'cvpservice/configlet/updateConfiglet.do',
+            'updateConfigletBuilder': 'cvpservice/configlet/updateConfigletBuilder.do',
             'searchTopo': 'cvpservice/provisioning/searchTopology.do',
             'getContainer': 'cvpservice/inventory/containers',
             'getContainerInfo': '/cvpservice/provisioning/getContainerInfoById.do',
@@ -49,7 +54,6 @@ class CVPCON():
             'getTaskStatus': 'cvpservice/task/getTaskStatusById.do',
             'generateCB': 'cvpservice/configlet/autoConfigletGenerator.do',
             'getTempConfigs': 'cvpservice/provisioning/getTempConfigsByNetElementId.do',
-            'getConfigletByName': 'cvpservice/configlet/getConfigletByName.do',
             'createSnapshot': 'cvpservice/snapshot/templates/schedule',
             'getAllSnapshots': 'cvpservice/snapshot/templates'
         }
@@ -262,11 +266,112 @@ class CVPCON():
     
     def getTaskStatus(self,t_id):
         """
-        Function to get teh status of a particular Task ID.
+        Function to get the status of a particular Task ID.
         Parameters:
         t_id = Task Id (required)
         """
         response = self._sendRequest("GET",self.cvp_api['getTaskStatus'] + "?taskId={0}".format(t_id))
+        return(response)
+
+    # ================================
+    # Configlets Section
+    # ================================
+
+    def impConfiglet(self,cType,cName,cScript,cFormList=[]):
+        """
+        Base function to add a new static or configlet builder.  Function will check for existing configlet,
+        if one exists, it will update otherwise create a new one.
+        Parameters:
+        cType = Type of configlet <static/builder> (required)
+        cName = Name of configlet (required)
+        cScript = Configlet data or Python script for Configlet Builders (required)
+        cFormList = Form list data for a configlet builder (optional)
+        """
+        cCheck = self.getConfigletByName(cName)
+        if 'key' in cCheck.keys():
+            if cCheck['type'] == 'Builder':
+                response = self.updateConfigletBuilder(cName,cScript,cCheck['key'],cFormList)
+                return(response)
+            elif cCheck['type'] == 'Static':
+                response = self.updateConfiglet(cName,cScript,cCheck['key'])
+                return(response)
+        else:
+            if cType.lower() == 'static':
+                response = self.addConfiglet(cName,cScript)
+                return(response)
+            elif cType.lower() == 'builder':
+                response = self.addConfigletBuilder(cName,cScript,cFormList)
+                return(response)
+
+    def addConfiglet(self,conName,conData):
+        """
+        Function to add a single static configlet
+        Parameters:
+        conName = Name of configlet (required)
+        conData = Configlet data/configuration (required)
+        """
+        payload = {
+            'config': conData,
+            'name': conName
+        }
+        response = self._sendRequest("POST",self.cvp_api['addConfiglet'],payload)
+        return(response)
+    
+    def updateConfiglet(self,conName,conData,conKey):
+        """
+        Function to update a single static configlet
+        Parameters:
+        conName = Name of configlet (required)
+        conData = Configlet data/configuration (required)
+        conKey = Configlet key (required)
+        """
+        payload = {
+            'config': conData,
+            'key': conKey,
+            'name': conName,
+        }
+        response = self._sendRequest("POST",self.cvp_api['updateConfiglet'],payload)
+        return(response)
+
+    def addConfigletBuilder(self,cbName,cbScript,cbForm=[]):
+        """
+        Function to add a configlet builder to cvp
+        Parameters:
+        cbName = Name of configlet builder (required)
+        cbScript = Python script as string (required)
+        cbForm = List for form data (optional)
+        """
+        payload = {
+            'name': cbName,
+            'data': {
+                'formList': cbForm,
+                'main_script': {
+                    'data': cbScript
+                }
+            }
+        }
+        response = self._sendRequest("POST",self.cvp_api['addConfigletBuilder'] + "?isDraft=false",payload)
+        return(response)
+    
+    def updateConfigletBuilder(self,cbName,cbScript,cbKey,cbForm=[]):
+        """
+        Function to update a configlet builder to cvp
+        Parameters:
+        cbName = Name of configlet builder (required)
+        cbScript = Python script as string (required)
+        cbKey = Configlet key (required)
+        cbForm = List for form data (optional)
+        """
+        payload = {
+            'name': cbName,
+            'data': {
+                'formList': cbForm,
+                'main_script': {
+                    'data': cbScript
+                }
+            }
+        }
+        response = self._sendRequest("POST",self.cvp_api['updateConfigletBuilder'] + "?isDraft=false&id=" + cbKey + "&action=save",payload)
         return(response)
 
     def getConfigletByName(self,cfg):
