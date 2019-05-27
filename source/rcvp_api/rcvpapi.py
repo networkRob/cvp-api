@@ -42,6 +42,7 @@ class CVPCON():
             'getConfigletByName': 'cvpservice/configlet/getConfigletByName.do',
             'updateConfiglet': 'cvpservice/configlet/updateConfiglet.do',
             'updateConfigletBuilder': 'cvpservice/configlet/updateConfigletBuilder.do',
+            'autoConfigletGenerator': 'cvpservice/configlet/autoConfigletGenerator.do',
             'searchTopo': 'cvpservice/provisioning/searchTopology.do',
             'getContainer': 'cvpservice/inventory/containers',
             'getContainerInfo': '/cvpservice/provisioning/getContainerInfoById.do',
@@ -66,6 +67,10 @@ class CVPCON():
         self.getAllContainers()
         self.getDeviceInventory()
         self.getAllSnapshots()
+
+    # ================================
+    # Utility Section
+    # ================================
 
     def _sendRequest(self,c_meth,url,payload={}):
         """
@@ -123,6 +128,10 @@ class CVPCON():
         response = self._sendRequest("POST",self.cvp_api['logout'])
         pS("OK","Logged out of CVP")
         return(response)
+    
+    # ================================
+    # Inventory Section
+    # ================================
     
     def getAllContainers(self):
         """
@@ -228,6 +237,10 @@ class CVPCON():
         }
         response = self._sendRequest("POST",self.cvp_api['addTempAction'] + "?format=topology&queryParam=&nodeId=root",payload)
         return(response)
+
+    # ================================
+    # Tasks Section
+    # ================================
 
     def getAllTasks(self,t_type):
         """
@@ -523,6 +536,10 @@ class CVPCON():
         response = self._sendRequest("POST",self.cvp_api['addTempAction'] + "?format=topology&queryParam=&nodeId=root",payload)
         return(response)
     
+    # ================================
+    # Snapshot Section
+    # ================================
+
     def createSnapshot(self,snap_name,snap_cmds,snap_devices=[]):
         """
         Function that creates snapshot templates.
