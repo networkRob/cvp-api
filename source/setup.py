@@ -7,4 +7,7 @@ setup(name="rcvp_api",
     author="Rob Martin",
     author_email="robmartin@arista.com",
     packages=['rcvp_api'],
+    install_requires=[
+        'requests'
+    ],
     zip_safe=False)
