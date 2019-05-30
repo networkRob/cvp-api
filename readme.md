@@ -4,7 +4,7 @@ This is a custom CVP API wrapper.
 
 ### Usage
 
-Download the updated release from `source/dist` and install
+Download the updated release from `release/` and install
 
 ```
 pip install rcvp_api-1.0-py2-non-any.whl
