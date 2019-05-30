@@ -126,7 +126,7 @@ class CVPCON():
         Function to terminate CVP Session
         """
         response = self._sendRequest("POST",self.cvp_api['logout'])
-        pS("OK","Logged out of CVP")
+        #pS("OK","Logged out of CVP")
         return(response)
     
     # ================================
@@ -269,10 +269,10 @@ class CVPCON():
                 while True:
                     t_response = self.getTaskStatus(task)
                     if 'Task Update In Progress' not in t_response['taskStatus']:
-                        pS("OK","Task Id: {0} has {1}".format(task,t_response['taskStatus']))
+                        #pS("OK","Task Id: {0} has {1}".format(task,t_response['taskStatus']))
                         break
                     else:
-                        pS("INFO","Task Id: {0} Still in progress....sleeping".format(task))
+                        #pS("INFO","Task Id: {0} Still in progress....sleeping".format(task))
                         sleep(10)
             self.getAllTasks(t_type)
             return(response)
