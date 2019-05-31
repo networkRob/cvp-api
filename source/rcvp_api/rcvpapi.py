@@ -1,4 +1,5 @@
 import requests, json
+from time import sleep
 
 class CVPSWITCH():
     def __init__(self,host,vx_ip,t_cnt):
@@ -39,10 +40,12 @@ class CVPCON():
             'checkVersion': 'cvpservice/cvpInfo/getCvpInfo.do',
             'addConfiglet': 'cvpservice/configlet/addConfiglet.do',
             'addConfigletBuilder': 'cvpservice/configlet/addConfigletBuilder.do',
+            'getConfiglets': 'cvpservice/configlet/getConfiglets.do',
             'getConfigletByName': 'cvpservice/configlet/getConfigletByName.do',
             'updateConfiglet': 'cvpservice/configlet/updateConfiglet.do',
             'updateConfigletBuilder': 'cvpservice/configlet/updateConfigletBuilder.do',
             'autoConfigletGenerator': 'cvpservice/configlet/autoConfigletGenerator.do',
+            'getConfigletBuilder': 'cvpservice/configlet/getConfigletBuilder.do',
             'searchTopo': 'cvpservice/provisioning/searchTopology.do',
             'getContainer': 'cvpservice/inventory/containers',
             'getContainerInfo': '/cvpservice/provisioning/getContainerInfoById.do',
@@ -385,6 +388,31 @@ class CVPCON():
             }
         }
         response = self._sendRequest("POST",self.cvp_api['updateConfigletBuilder'] + "?isDraft=false&id=" + cbKey + "&action=save",payload)
+        return(response)
+    
+    def getConfiglets(self,cfg_type='Configlet,Builder'):
+        """
+        Function to grab all configlets from cvp
+        Parameters:
+        cfg_type = Configlet type to download, options available: (optional: default Configlet,Builder)
+            Configlet - Returns static and generated configlets
+            Builder - Returns builder as well as draft configlets
+            Draft - Returns draft configlets
+            BuilderWithoutDraft - Returns only builder configlets
+            IgnoreDraft - Returns everything other than draft configlets
+            Static - Returns static configlets
+            Generated - Returns generated configlets
+        """
+        response = self._sendRequest("GET",self.cvp_api['getConfiglets'] + '?type={0}&startIndex=0&endIndex=0'.format(cfg_type))
+        return(response)
+    
+    def getConfigletBuilder(self,cb_id):
+        """
+        Function to return the configlet builder information based off id:
+        Parameters:
+        cb_id = Configlet Builder ID (required)
+        """
+        response = self._sendRequest("GET",self.cvp_api['getConfigletBuilder'] + '?id={0}'.format(cb_id))
         return(response)
 
     def getConfigletByName(self,cfg):
