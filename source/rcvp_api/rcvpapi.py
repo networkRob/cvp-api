@@ -11,6 +11,7 @@ class CVPSWITCH():
         self.parentContainer = ""
         self.sys_mac = ""
         self.configlets = {"keys":[],"names":[]}
+        self.ignoreconfiglets = {"keys":[],"names":[]}
     
     def updateContainer(self,CVPOBJ):
         """
@@ -29,6 +30,7 @@ class CVPSWITCH():
         NONE
         """
         self.configlets = {"keys":[],"names":[]}
+        self.ignoreconfiglets = {"keys":[],"names":[]}
     
     def updateDevice(self,CVPOBJ):
         """
@@ -70,6 +72,7 @@ class CVPCON():
             'searchTopo': 'cvpservice/provisioning/searchTopology.do',
             'getContainer': 'cvpservice/inventory/containers',
             'getContainerInfo': '/cvpservice/provisioning/getContainerInfoById.do',
+            'getConfigletsByNetElementId': '/cvpservice/provisioning/getConfigletsByNetElementId.do',
             'addTempAction': 'cvpservice/provisioning/addTempAction.do',
             'deviceInventory': 'cvpservice/inventory/devices',
             'saveTopo': 'cvpservice/provisioning/v2/saveTopology.do',
@@ -445,6 +448,15 @@ class CVPCON():
         response = self._sendRequest("GET",self.cvp_api['getConfigletByName'] + "?name={0}".format(cfg))
         return(response)
     
+    def getConfigletsByNetElementId(self,eos_obj):
+        """
+        Function to get all applied configlets to a particular device.
+        Parameters:
+        eos_obj = CVPSWITCH class object that contains relevant EOS device info (required)
+        """
+        response = self._sendRequest("GET",self.cvp_api['getConfigletsByNetElementId'] + '?netElementId={0}&startIndex=0&endIndex=0'.format(eos_obj.sys_mac))
+        return(response)
+    
     def addContainerConfiglets(self,cnt_name,cfg_list):
         """
         Function to take a list of container specific config names, get the config Ids from CVP and add them to the container configlet list to be applied.
@@ -525,8 +537,8 @@ class CVPCON():
                     'nodeType': 'configlet',
                     'configletList': eos_obj.configlets["keys"],
                     'configletNamesList': eos_obj.configlets["names"],
-                    'ignoreConfigletNamesList': [],
-                    'ignoreConfigletList': [],
+                    'ignoreConfigletNamesList': eos_obj.ignoreconfiglets["names"],
+                    'ignoreConfigletList': eos_obj.ignoreconfiglets["keys"],
                     'configletBuilderList': [],
                     'configletBuilderNamesList': [],
                     'ignoreConfigletBuilderList': [],
