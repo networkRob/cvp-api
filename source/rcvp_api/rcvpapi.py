@@ -2,7 +2,7 @@ import requests, json
 from time import sleep
 
 class CVPSWITCH():
-    def __init__(self,host,vx_ip,t_cnt):
+    def __init__(self,host,vx_ip,t_cnt=""):
         self.serial_num = ""
         self.fqdn = ""
         self.hostname = host
@@ -21,6 +21,27 @@ class CVPSWITCH():
         CVPOBJ.getDeviceInventory()
         self.sys_mac = CVPOBJ.inventory[self.hostname]["systemMacAddress"]
         self.parentContainer = CVPOBJ.getContainerInfo(CVPOBJ.inventory[self.hostname]["parentContainerKey"])
+    
+    def resetConfiglets(self):
+        """
+        Function to reset the configlets of device to none.
+        Parameters:
+        NONE
+        """
+        self.configlets = {"keys":[],"names":[]}
+    
+    def updateDevice(self,CVPOBJ):
+        """
+        Function that updates the EOS device information:
+        Parameters:
+        CVPOBJ = CVPCON class object that contains information about CVP (required)
+        """
+        CVPOBJ.getDeviceInventory()
+        tmp_info = CVPOBJ.inventory[self.hostname]
+        self.sys_mac = tmp_info['systemMacAddress']
+        self.fqdn = tmp_info['fqdn']
+        self.parentContainer = tmp_info['parentContainerKey']
+
 
 # ==================================
 # Class definition for working with CVP
