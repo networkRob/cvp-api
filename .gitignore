@@ -1,4 +1,4 @@
-source/build
-source/dist
-source/*.egg-info
+build
+dist
+*.egg-info
 *.pyc

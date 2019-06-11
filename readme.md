@@ -11,16 +11,16 @@ This has been tested on CVP versions:
 
 ### Usage
 
-Download the updated release from `release/` and install
+Install using the Python Package Index
 
 ```
-pip install rcvp_api-1.0-py2-non-any.whl
+pip install rcvpapi
 ```
 
 Import into Python
 
 ```
-from rcvp_api.rcvpapi import *
+from rcvpapi.rcvpapi import *
 
 # Create connection to CloudVision
 cvp_cnt = CVPCON(cvp_ip,cvp_user,cvp_user_pwd)
