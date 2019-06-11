@@ -19,9 +19,15 @@ class CVPSWITCH():
         Parameters:
         CVPOBJ = CVPCON class object that contains information about CVP (required)
         """
-        CVPOBJ.getDeviceInventory()
-        self.sys_mac = CVPOBJ.inventory[self.hostname]["systemMacAddress"]
-        self.parentContainer = CVPOBJ.getContainerInfo(CVPOBJ.inventory[self.hostname]["parentContainerKey"])
+        updateCnt = True
+        while updateCnt:
+            CVPOBJ.getDeviceInventory()
+            try:
+                self.sys_mac = CVPOBJ.inventory[self.hostname]["systemMacAddress"]
+                self.parentContainer = CVPOBJ.getContainerInfo(CVPOBJ.inventory[self.hostname]["parentContainerKey"])
+                updateCnt = False
+            except:
+                sleep(1)
     
     def resetConfiglets(self):
         """
@@ -216,14 +222,14 @@ class CVPCON():
         response = self._sendRequest("POST",self.cvp_api['addTempAction'] + "?format=topology&queryParam=&nodeId=root",payload)
         return(response)
 
-    def addDeviceInventory(self,eos_ip):
+    def addDeviceInventory(self,eos_ips):
         """
         Function that adds a device to inventory
         Parameters:
         eos_ip = MGMT IP address for the EOS device (required)
         """
         payload = {
-            "hosts": [eos_ip]
+            "hosts": eos_ips
         }
         response = self._sendRequest("POST",self.cvp_api['deviceInventory'],payload)
         return(response)
@@ -514,6 +520,7 @@ class CVPCON():
             'pageType': 'netelement'
         }
         tmp_cb = self.getTempConfigs(eos_obj,"Builder")
+        response = ""
         for cb in tmp_cb:
             payload['configletBuilderId'] = cb
             response = self._sendRequest("POST",self.cvp_api['generateCB'],payload)
