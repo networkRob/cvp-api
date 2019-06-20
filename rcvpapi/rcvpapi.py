@@ -81,11 +81,16 @@ class CVPCON():
             'getConfigletsByNetElementId': '/cvpservice/provisioning/getConfigletsByNetElementId.do',
             'addTempAction': 'cvpservice/provisioning/addTempAction.do',
             'deviceInventory': 'cvpservice/inventory/devices',
+            'deleteDevice': 'cvpservice/inventory/deleteDevices.do',
+            'inventoryConfig': 'cvpservice/inventory/getInventoryConfiguration.do',
             'saveTopo': 'cvpservice/provisioning/v2/saveTopology.do',
             'getAllTemp': 'cvpservice/provisioning/getAllTempActions.do?startIndex=0&endIndex=0',
             'getAllTasks': 'cvpservice/task/getTasks.do',
+            'deleteAllTemp': 'cvpservice/task/deleteAllTempAction.do',
+            'cancelTasks': 'cvpservice/task/cancelTask.do',
             'executeAllTasks': 'cvpservice/task/executeTask.do',
             'getTaskStatus': 'cvpservice/task/getTaskStatusById.do',
+            'ipConnectivityTest': 'cvpservice/provisioning/ipConnectivityTest.do',
             'generateCB': 'cvpservice/configlet/autoConfigletGenerator.do',
             'getTempConfigs': 'cvpservice/provisioning/getTempConfigsByNetElementId.do',
             'createSnapshot': 'cvpservice/snapshot/templates/schedule',
@@ -242,6 +247,27 @@ class CVPCON():
         for res in response:
             self.inventory[res['hostname']] = {"fqdn":res['fqdn'],'ipAddress':res['ipAddress'],'parentContainerKey':res['parentContainerKey'],"systemMacAddress":res["systemMacAddress"]}
     
+    def deleteDevices(self,eos_mac):
+        """
+        Function to remove a device from provisioning inventory.
+        Parameters:
+        eos_mac = System mac address for the device to be removed (required)
+        """
+        payload = {
+            "data": [eos_mac]
+        }
+        response = self._sendRequest("POST",self.cvp_api['deleteDevice'],payload)
+        return(response)
+
+    def getInventoryConfiguration(self,eos_obj):
+        """
+        Function to get current configuration for specified device.
+        Parameters:
+        eos_obj = CVPSWITCH class object that contains relevant device info (required)
+        """
+        response = self._sendRequest("GET",self.cvp_api['inventoryConfig'] + "?netElementId={0}".format(eos_obj.sys_mac))
+        return(response)
+    
     def moveDevice(self,eos_obj):
         """
         Function that moves a device from one container to another container.
@@ -307,6 +333,23 @@ class CVPCON():
                     else:
                         #pS("INFO","Task Id: {0} Still in progress....sleeping".format(task))
                         sleep(10)
+            self.getAllTasks(t_type)
+            return(response)
+    
+    def cancelTasks(self,t_type):
+        """
+        Function to cancel any tasks by type
+        Parameters:
+        t_type = Task type to execute on, ie "Pending" (required)
+        """
+        data = []
+        if t_type in self.tasks.keys():
+            if self.tasks[t_type]:
+                for task in self.tasks[t_type]:
+                    data.append(task['workOrderId'])
+        if data:
+            payload = {"data": data}
+            response = self._sendRequest("POST",self.cvp_api['cancelTasks'],payload)
             self.getAllTasks(t_type)
             return(response)
     
@@ -566,6 +609,16 @@ class CVPCON():
         }
         response = self._sendRequest("POST",self.cvp_api['addTempAction'] + "?format=topology&queryParam=&nodeId=root",payload)
         return(response)
+    
+    def deleteAllTempActions(self):
+        """
+        Function to delete all temporary actions.
+        Parameters:
+        NONE
+        """
+        payload = {}
+        response = self._sendRequest("POST",self.cvp_api['deleteAllTemp'],payload)
+        return(response)
 
     def applyConfigletsContainers(self,cnt_name):
         """ 
@@ -602,6 +655,18 @@ class CVPCON():
             ]
         }
         response = self._sendRequest("POST",self.cvp_api['addTempAction'] + "?format=topology&queryParam=&nodeId=root",payload)
+        return(response)
+    
+    def ipConnectivityTest(self,veos_ip):
+        """
+        Function to test the reachability of an IP address.
+        Parameters:
+        veos_ip = IP address to see if CVP can reach (required)
+        """
+        payload = {
+            "ipAddress": veos_ip
+        }
+        response = self._sendRequest("POST",self.cvp_api['ipConnectivityTest'],payload)
         return(response)
     
     # ================================
