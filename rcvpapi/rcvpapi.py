@@ -380,17 +380,17 @@ class CVPCON():
         if 'key' in cCheck.keys():
             if cCheck['type'] == 'Builder':
                 response = self.updateConfigletBuilder(cName,cScript,cCheck['key'],cFormList)
-                return(response)
+                return(("Updated",response))
             elif cCheck['type'] == 'Static':
                 response = self.updateConfiglet(cName,cScript,cCheck['key'])
-                return(response)
+                return(("Updated",response))
         else:
             if cType.lower() == 'static':
                 response = self.addConfiglet(cName,cScript)
-                return(response)
+                return(("Added",response))
             elif cType.lower() == 'builder':
                 response = self.addConfigletBuilder(cName,cScript,cFormList)
-                return(response)
+                return(("Added",response))
 
     def addConfiglet(self,conName,conData):
         """
