@@ -94,7 +94,10 @@ class CVPCON():
             'generateCB': 'cvpservice/configlet/autoConfigletGenerator.do',
             'getTempConfigs': 'cvpservice/provisioning/getTempConfigsByNetElementId.do',
             'createSnapshot': 'cvpservice/snapshot/templates/schedule',
-            'getAllSnapshots': 'cvpservice/snapshot/templates'
+            'getAllSnapshots': 'cvpservice/snapshot/templates',
+            'getCertificate': 'cvpservice/ssl/getCertificate.do',
+            'generateCertificate': 'cvpservice/ssl/generateCertificate.do',
+            'installCertificate': 'cvpservice/ssl/installCertificate.do'
         }
 
         self.headers = {
@@ -697,3 +700,53 @@ class CVPCON():
         """
         response = self._sendRequest("GET",self.cvp_api['getAllSnapshots'] + "?startIndex=0&endIndex=0")
         self.snapshots = response['templateKeys']
+    
+    # ================================
+    # SSL Certificates Section
+    # ================================
+
+    def getCerts(self,certType='cvpCert'):
+        """
+        Function to get installed certs in CVP.
+        Parameters:
+        certType = Type of cert (optional) 
+            Options:
+                - cvpCert (default) self-signed
+                - csr
+                - dcaCert
+        """
+        response = self._sendRequest("GET",self.cvp_api['getCertificate'] + "?certType={}".format(certType))
+        return(response)
+
+    def generateCert(self, cName, organization, organizationUnit, description, validity):
+        """
+        Function to generate a self-signed cert.
+        Parameters:
+        cName = Common Name (required)
+        organization = Organization (requried)
+        organizationUnit = Organizational Unit (required)
+        description = Description (required)
+        validity = Valid lengh in days (required) int
+        """
+        payload = {
+            "certType": "cvpCert",
+            "commonName": cName,
+            "organization": organization,
+            "organizationUnit": organizationUnit,
+            "description": description,
+            "keyLength": 2048,
+            "digestAlgorithm": "SHA256withRSA",
+            "encryptAlgorithm": "RSA",
+            "validity": validity
+        }
+        response = self._sendRequest("POST",self.cvp_api['generateCertificate'], payload)
+        return(response)
+    
+    def installCert(self):
+        """
+        Function to install proposed Certs.
+        Parameters:
+        None
+        """
+        response = self._sendRequest("POST",self.cvp_api['installCertificate'])
+        return(response)
