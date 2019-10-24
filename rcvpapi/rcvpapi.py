@@ -38,6 +38,19 @@ class CVPSWITCH():
         self.configlets = {"keys":[],"names":[]}
         self.ignoreconfiglets = {"keys":[],"names":[]}
     
+    def removeConfiglets(self,CVPOBJ, remove_list):
+        """
+        Function that sets configlets to be removed.
+        Parameters:
+        CVPOBJ = CVPCON class object that contains information about CVP (required)
+        remove_list = List of configlet names to be removed (required)
+        """
+        for cfg in remove_list:
+            response = CVPOBJ.getConfigletByName(cfg)
+            if 'key' in response.keys():
+                self.ignoreconfiglets["keys"].append(response["key"])
+                self.ignoreconfiglets['names'].append(response["name"])
+    
     def updateDevice(self,CVPOBJ):
         """
         Function that updates the EOS device information:
@@ -97,7 +110,9 @@ class CVPCON():
             'getAllSnapshots': 'cvpservice/snapshot/templates',
             'getCertificate': 'cvpservice/ssl/getCertificate.do',
             'generateCertificate': 'cvpservice/ssl/generateCertificate.do',
-            'installCertificate': 'cvpservice/ssl/installCertificate.do'
+            'installCertificate': 'cvpservice/ssl/installCertificate.do',
+            'createServer': 'cvpservice/aaa/createServer.do',
+            'saveAAADetails': 'cvpservice/aaa/saveAAADetails.do'
         }
 
         self.headers = {
@@ -146,8 +161,8 @@ class CVPCON():
         """
         Function that saves all Temporary Provisioning Actions/Tasks
         """
-        payload = self._sendRequest("GET",self.cvp_api['getAllTemp'])['data']
-        response = self._sendRequest("POST",self.cvp_api['saveTopo'],payload)
+        # payload = self._sendRequest("GET",self.cvp_api['getAllTemp'])['data']
+        response = self._sendRequest("POST",self.cvp_api['saveTopo'],[])
         return(response)
         
     def getSID(self):
@@ -227,7 +242,7 @@ class CVPCON():
                 }
             ]
         }
-        response = self._sendRequest("POST",self.cvp_api['addTempAction'] + "?format=topology&queryParam=&nodeId=root",payload)
+        response = self._sendRequest("POST",self.cvp_api['addTempAction'] + "?format=topology&queryParam=&nodeId={0}".format(self.containers[pnt_name]["Key"]),payload)
         return(response)
 
     def addDeviceInventory(self,eos_ips):
@@ -749,4 +764,46 @@ class CVPCON():
         None
         """
         response = self._sendRequest("POST",self.cvp_api['installCertificate'])
+        return(response)
+    
+    # ================================
+    # AAA Section
+    # ================================
+
+    def createServer(self, ip, stype, secret, port, acctport, mode="PAP", status="Enabled"):
+        """
+        Function to add a new AAA server.
+        Parameters:
+        ip = IP address for the authenticaton server (required)
+        stype = Authentication server type RADIUS, TACACS (required)
+        secret = Secret used for the server (required)
+        port = Authentication port (required)
+        acctport = Accounting port (required)
+        mode = Mode to use. ie PAP (optional)
+        status = Enable or disable the server (optional)
+        """
+        payload = {
+            "ipAddress": ip,
+            "serverType": stype,
+            "secret": secret,
+            "authMode": mode,
+            "accountPort": acctport,
+            "port": port,
+            "status": status
+        }
+        response = self._sendRequest("POST", self.cvp_api['createServer'], payload)
+        return(response)
+    
+    def saveAAA(self, authe, autho):
+        """
+        Function to save the authenticatoin authorization settings.
+        Parameters:
+        authe = Authentication mode (required)
+        autho = Authorization mode (required)
+        """
+        payload = {
+            "authenticationServerType": authe,
+            "authorizationServerType": autho
+        }
+        response = self._sendRequest("POST", self.cvp_api['saveAAADetails'], payload)
         return(response)

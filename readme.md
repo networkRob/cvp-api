@@ -11,6 +11,7 @@ This has been tested on CVP versions:
 - 2018.2.3
 - 2018.2.4
 - 2018.2.5
+- 2019.1.0
 
 ### Usage
 
