@@ -74,6 +74,8 @@ class CVPCON():
         self.cvp_pwd = c_pwd
         self.inventory = {}
         self.containers = {}
+        self.images = {}
+        self.imageBundles = {}
         self.tasks = {}
         self.cvp_api = {
             'authenticate': 'cvpservice/login/authenticate.do',
@@ -112,23 +114,41 @@ class CVPCON():
             'generateCertificate': 'cvpservice/ssl/generateCertificate.do',
             'installCertificate': 'cvpservice/ssl/installCertificate.do',
             'createServer': 'cvpservice/aaa/createServer.do',
-            'saveAAADetails': 'cvpservice/aaa/saveAAADetails.do'
+            'saveAAADetails': 'cvpservice/aaa/saveAAADetails.do',
+            'getImages': 'cvpservice/image/getImages.do',
+            'getImageBundles': 'cvpservice/image/v2/getImageBundles.do',
+            'addImage': 'cvpservice/image/addImage.do',
+            'saveImageBundle': 'cvpservice/image/saveImageBundle.do'
         }
 
         self.headers = {
             'Content-Type':'application/json',
             'Accept':'application/json'
         }
-        self.SID = self.getSID()
+        self._createSession()
+        # self.SID = self.getSID()
         self.getAllContainers()
         self.getDeviceInventory()
         self.getAllSnapshots()
+        self.getImages()
+        self.getImageBundles()
 
     # ================================
     # Utility Section
     # ================================
 
-    def _sendRequest(self,c_meth,url,payload={}):
+    def _createSession(self):
+        payload = {
+            'userId':self.cvp_user,
+            'password':self.cvp_pwd
+        }
+        self.session = requests.Session()
+        response = self.session.post("https://{0}/{1}".format(self.cvp_url, self.cvp_api['authenticate']), json=payload, verify=False, headers=self.headers)
+        self.cookies = response.cookies
+        self.SID = response.cookies['session_id']
+        self.headers['Cookie'] = 'session_id={}'.format(response.cookies['session_id'])
+
+    def _sendRequest(self,c_meth,url,payload='',files=None):
         """
         Generic function that will send the API call to CVP. 
         Parameters:
@@ -136,8 +156,30 @@ class CVPCON():
         url = The API url that is located in self.cvp_api (required)
         payload = data/payload required for the API call, if needed (optional)
         """
-        response = requests.request(c_meth,"https://{}/".format(self.cvp_url) + url,json=payload,headers=self.headers,verify=False)
-        return(response.json())
+        if self.session:
+            if c_meth == "GET":
+                response = self.session.get("https://{}/".format(self.cvp_url) + url, json=payload, headers=self.headers, verify=False)
+            elif c_meth == "POST" and files:
+                fheaders = {
+                    'Accept': 'application/json',
+                    'Cookie': 'session_id={}'.format(self.SID)
+                }
+                response = self.session.post("https://{}/".format(self.cvp_url) + url, files=files, headers=fheaders, verify=False)
+            else:
+                response = self.session.post("https://{}/".format(self.cvp_url) + url, json=payload, headers=self.headers, verify=False)
+            if response:
+                return(response.json())
+            else:
+                return(False)
+        else:
+            return(False)
+        # if files:
+        #     f_data = open(files, 'rb')
+        #     fhs = {'Accept':'application/json'}
+        #     response = requests.request(c_meth,"https://{}/".format(self.cvp_url) + url, timeout=30, files={'file':f_data}, headers=fhs,verify=False)
+        # else:
+        #     response = requests.request(c_meth,"https://{}/".format(self.cvp_url) + url, json=payload, headers=self.headers,verify=False)
+        # return(response.json())
     
     def _checkSession(self):
         if 'Cookie' in self.headers.keys():
@@ -807,3 +849,126 @@ class CVPCON():
         }
         response = self._sendRequest("POST", self.cvp_api['saveAAADetails'], payload)
         return(response)
+
+    # ================================
+    # Images Section
+    # ================================
+
+    def getImages(self, name=None):
+        """
+        Function to get images already uploaded to CVP.
+        Parameters:
+        name = Name of image to check for (optional)
+        """
+        if name:
+            param = "queryparam={}&".format(name)
+        else:
+            param = ""
+        response = self._sendRequest("GET", self.cvp_api['getImages'] + "?" + param + "startIndex=0&endIndex=0")
+        if response['total']:
+            for img in response['data']:
+                self.images[img['name']] = {
+                    'imageId': img['imageId'],
+                    'name': img['name'],
+                    'isRebootRequired': img['isRebootRequired']
+                }
+        return(response)
+
+    def getImageBundles(self, name=None):
+        """
+        Function to get all image bundles in CVP.
+        Parameters:
+        name = Name of the image bundle to check (optional)
+        """
+        if name:
+            param = "queryparam={}&".format(name)
+        else:
+            param = ""
+        response = self._sendRequest("GET", self.cvp_api['getImageBundles'] + "?" + param + "startIndex=0&endIndex=0")
+        if response['total']:
+            for imb in response['data']:
+                self.imageBundles[imb['name']] = imb
+        return(response)
+
+    def addImage(self, img_path):
+        """
+        Function to import a .swi or .swix file into the CVP Datastore.
+        Parameters:
+        img_path = Full path location for the file (required)
+        """
+        # file = open(img_path, 'rb')
+        response = self._sendRequest("POST", self.cvp_api['addImage'], files={'file':open(img_path, 'rb')})
+        # file.close()
+        if 'result' in response:
+            if response['result'] == 'success':
+                self.images[response['name']] = {
+                    'imageId': response['imageId'],
+                    'name': response['name'],
+                    'isRebootRequired': response['isRebootRequired']
+                }
+        return(response)
+    
+    def createImageBundle(self, name, img_list, certified=True):
+        """
+        Function to create an Image bundle.
+        Parameters:
+        name = Name of the image bundle (required)
+        certified = If the bundle is certified (required)
+        img_list = Array of images names to add to the bundle (required)
+        """
+        img_bundle = []
+        for img in img_list:
+            if self.images[img]:
+                img_bundle.append({
+                    'name': self.images[img]['name'],
+                    'isRebootRequired': self.images[img]['isRebootRequired']
+                })
+        if img_bundle:
+            payload = {
+                'name': name,
+                'isCertifiedImage': 'true' if certified else 'false',
+                'images': img_bundle
+            }
+            response = self._sendRequest("POST", self.cvp_api['saveImageBundle'], payload=payload)
+            return(response)
+        else:
+            return(False)
+    
+    def applyImage(self, target_type, bundle_name, target_name):
+        """
+        Function to apply an Image bundle to device or container.
+        Parameters:
+        target_type = id type {container, netelement} (required)
+        bundle_name = Name of the image bundle to apply (required)
+        target_name = Name of endpoint to apply to (required)
+        """
+        res = self.getImageBundles(name=bundle_name)
+        if res['total'] == 1:
+            msg = "Applying Image Bundle to {0}".format(target_name)
+            payload = {
+                'data': [
+                    {
+                        'info': msg,
+                        'infoPreview': msg,
+                        'action': 'associate',
+                        'nodeType': 'imagebundle',
+                        'nodeId': res['data'][0]['key'],
+                        'toId': '',
+                        'fromId': '',
+                        'nodeName': res['data'][0]['name'],
+                        'fromName': '',
+                        'toName': target_name,
+                        'childTasks': [],
+                        'parentTask': '',
+                        'toIdType': target_type
+                    }
+                ]
+            }
+            if target_type == 'container':
+                payload['data'][0]['toId'] = self.containers[target_name]['Key']
+            else:
+                payload['data'][0]['toId'] = self.inventory[target_name]['systemMacAddress']
+            response = self._sendRequest("POST", self.cvp_api['addTempAction'] + "?format=topology&queryParam=&nodeId=root",payload)
+            return(response)
+        else:
+            return(False)
