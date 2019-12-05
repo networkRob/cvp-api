@@ -94,6 +94,7 @@ class CVPCON():
             'getContainer': 'cvpservice/inventory/containers',
             'getContainerInfo': 'cvpservice/provisioning/getContainerInfoById.do',
             'getConfigletsByNetElementId': 'cvpservice/provisioning/getConfigletsByNetElementId.do',
+            'getConfigletsByContainerId': 'cvpservice/provisioning/getConfigletsByContainerId.do',
             'addTempAction': 'cvpservice/provisioning/addTempAction.do',
             'deviceInventory': 'cvpservice/inventory/devices',
             'deleteDevice': 'cvpservice/inventory/deleteDevices.do',
@@ -173,13 +174,6 @@ class CVPCON():
                 return(False)
         else:
             return(False)
-        # if files:
-        #     f_data = open(files, 'rb')
-        #     fhs = {'Accept':'application/json'}
-        #     response = requests.request(c_meth,"https://{}/".format(self.cvp_url) + url, timeout=30, files={'file':f_data}, headers=fhs,verify=False)
-        # else:
-        #     response = requests.request(c_meth,"https://{}/".format(self.cvp_url) + url, json=payload, headers=self.headers,verify=False)
-        # return(response.json())
     
     def _checkSession(self):
         if 'Cookie' in self.headers.keys():
@@ -203,7 +197,6 @@ class CVPCON():
         """
         Function that saves all Temporary Provisioning Actions/Tasks
         """
-        # payload = self._sendRequest("GET",self.cvp_api['getAllTemp'])['data']
         response = self._sendRequest("POST",self.cvp_api['saveTopo'],[])
         return(response)
         
@@ -238,6 +231,8 @@ class CVPCON():
         response = self._sendRequest("GET",self.cvp_api['getContainer'])
         for cnt in response:
             self.containers[cnt['Name']] = cnt
+            self.containers[cnt['Name']]['ignorecfgs'] = {'keys':[], 'names': []}
+            self.containers[cnt['Name']]['configlets'] = {'keys':[], 'names': []}
     
     def getContainerId(self,cnt_name):
         """
@@ -394,7 +389,7 @@ class CVPCON():
                         #pS("INFO","Task Id: {0} Still in progress....sleeping".format(task))
                         sleep(10)
             self.getAllTasks(t_type)
-            return(response)
+            return({'response': response, 'ids': payload['data']})
     
     def cancelTasks(self,t_type):
         """
@@ -566,7 +561,49 @@ class CVPCON():
         response = self._sendRequest("GET",self.cvp_api['getConfigletsByNetElementId'] + '?netElementId={0}&startIndex=0&endIndex=0'.format(eos_obj.sys_mac))
         return(response)
     
-    def addContainerConfiglets(self,cnt_name,cfg_list):
+    def getConfigletsByContainerId(self, cnt_id):
+        """
+        Function to get all applied configlets to a paricular container.
+        Parametrers:
+        cnt_id = ID/Key of the container (required)
+        """
+        # Get the container ID for the provided name
+        response = self._sendRequest("GET", self.cvp_api['getConfigletsByContainerId'] + "?containerId={0}&startIndex=0&endIndex=0".format(cnt_id))
+        return(response)
+    
+    def updateContainersConfigletsInfo(self, cnt_name):
+        """
+        Function to get all applied configlets to a paricular container and
+        apply to the container object.
+        Parametrers:
+        cnt_name = Name of the container (required)
+        """
+        # Get the container ID for the provided name
+        cnt_id = self.getContainerId(cnt_name)[0]['Key']
+        response = self.getConfigletsByContainerId(cnt_id)
+        self.containers[cnt_name]['configlets'] = {'keys':[],'names':[]}
+        self.containers[cnt_name]['ignorecfgs'] = {'keys':[],'names':[]}
+        for cfg in response['configletList']:
+            self.containers[cnt_name]['configlets']['keys'].append(cfg["key"])
+            self.containers[cnt_name]['configlets']['names'].append(cfg["name"])
+        return(response)
+
+    def removeContainerConfiglets(self, cnt_name, ignore_list):
+        """
+        Function to add configlets to be removed from a container.
+        Parameters:
+        cnt_name = Name of the container (required)
+        ignore_list = List of configlet names to be ignored (required)
+        """
+        self.containers[cnt_name]['ignorecfgs'] = {'keys':[], 'names': []}
+        for cfg in ignore_list:
+            response = self.getConfigletByName(cfg)
+            if 'key' in response.keys():
+                self.containers[cnt_name]['ignorecfgs']['keys'].append(response["key"])
+                self.containers[cnt_name]['ignorecfgs']['names'].append(response["name"])
+        return(True)
+
+    def addContainerConfiglets(self, cnt_name, cfg_list):
         """
         Function to take a list of container specific config names, get the config Ids from CVP and add them to the container configlet list to be applied.
         Parameters:
@@ -696,8 +733,8 @@ class CVPCON():
                     'nodeType': 'configlet',
                     'configletList': self.containers[cnt_name]['configlets']['keys'],
                     'configletNamesList': self.containers[cnt_name]['configlets']["names"],
-                    'ignoreConfigletNamesList': [],
-                    'ignoreConfigletList': [],
+                    'ignoreConfigletNamesList': self.containers[cnt_name]['ignorecfgs']['names'],
+                    'ignoreConfigletList': self.containers[cnt_name]['ignorecfgs']['keys'],
                     'configletBuilderList': [],
                     'configletBuilderNamesList': [],
                     'ignoreConfigletBuilderList': [],
