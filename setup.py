@@ -5,7 +5,7 @@ with open("README.md","r") as fh:
 
 setuptools.setup(
     name="rcvpapi",
-    version="1.5.34",
+    version="1.6.0",
     description="Module to interact with Arista CloudVision",
     url="https://github.com/networkRob/rcvpapi",
     author="Rob Martin",
@@ -19,6 +19,7 @@ setuptools.setup(
     classifiers=[
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
         "Intended Audience :: Developers",
         "Intended Audience :: System Administrators",
         "Operating System :: OS Independent",

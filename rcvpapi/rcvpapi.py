@@ -22,12 +22,23 @@ class CVPSWITCH():
         updateCnt = True
         while updateCnt:
             CVPOBJ.getDeviceInventory()
-            try:
-                self.sys_mac = CVPOBJ.inventory[self.hostname]["systemMacAddress"]
-                self.parentContainer = CVPOBJ.getContainerInfo(CVPOBJ.inventory[self.hostname]["parentContainerKey"])
-                updateCnt = False
-            except:
-                sleep(1)
+            # Adding check for ZTP devices with different hostnames
+            if self.hostname in CVPOBJ.inventory:
+                try:
+                    self.sys_mac = CVPOBJ.inventory[self.hostname]["systemMacAddress"]
+                    self.parentContainer = CVPOBJ.getContainerInfo(CVPOBJ.inventory[self.hostname]["parentContainerKey"])
+                    updateCnt = False
+                except:
+                    sleep(1)
+            else:
+                try:
+                    for cvp_node in CVPOBJ.inventory:
+                        if CVPOBJ.inventory[cvp_node]["ipAddress"] == self.ip:
+                            self.sys_mac = CVPOBJ.inventory[cvp_node]["systemMacAddress"]
+                            self.parentContainer = CVPOBJ.getContainerInfo(CVPOBJ.inventory[cvp_node]["parentContainerKey"])
+                            updateCnt = False
+                except:
+                    sleep(1)
     
     def resetConfiglets(self):
         """
