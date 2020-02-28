@@ -1,17 +1,15 @@
 ## CloudVision API (rCVP API)
 
-This is a custom CVP API wrapper.
+This is a custom CVP API wrapper.  This module works using Python2 and Python3.  
 
 ### Support
 
 ***NOTE*** Always test on lab deployments before working on a production environment.  Espeically between different releases of CVP and rCVP API.
 
 This has been tested on CVP versions:
-- 2018.2.2
-- 2018.2.3
-- 2018.2.4
-- 2018.2.5
-- 2019.1.0
+- 2018.2.X
+- 2019.1.X
+- 2020.1.X (Beta Testing)
 
 ### Usage
 
@@ -23,6 +21,10 @@ Install using the Python Package Index
 ```
 pip install rcvpapi
 ```
+or 
+```
+pip3 install rcvpapi
+```
 
 #### Initial Setup and Usage
 
@@ -32,11 +34,11 @@ from rcvpapi.rcvpapi import *
 # Create connection to CloudVision
 cvp_cnt = CVPCON(cvp_ip,cvp_user,cvp_user_pwd)
 
-# Check current CloudVision session ID
+# Check current CloudVision sessionId/Cookie
 cvp_cnt.SID
 
 # Get the current CVP Version
-cvp_ver = cvp_cnt.checkVersion()
+cvp_cnt.version
 
 # Logout/End session
 cvp_cnt.execLogout()

@@ -88,6 +88,7 @@ class CVPCON():
         self.images = {}
         self.imageBundles = {}
         self.tasks = {}
+        self.version = ''
         self.cvp_api = {
             'authenticate': 'cvpservice/login/authenticate.do',
             'logout': 'cvpservice/login/logout.do',
@@ -138,7 +139,7 @@ class CVPCON():
             'Accept':'application/json'
         }
         self._createSession()
-        # self.SID = self.getSID()
+        self.checkVersion()
         self.getAllContainers()
         self.getDeviceInventory()
         self.getAllSnapshots()
@@ -157,8 +158,12 @@ class CVPCON():
         self.session = requests.Session()
         response = self.session.post("https://{0}/{1}".format(self.cvp_url, self.cvp_api['authenticate']), json=payload, verify=False, headers=self.headers)
         self.cookies = response.cookies
-        self.SID = response.cookies['session_id']
-        self.headers['Cookie'] = 'session_id={}'.format(response.cookies['session_id'])
+        if 'access_token' in response.cookies:
+            self.SID = str(response.json()['cookie']['Raw'])
+            self.headers['Cookie'] = str(response.json()['cookie']['Raw'])
+        else:
+            self.SID = response.cookies['session_id']
+            self.headers['Cookie'] = 'session_id={}'.format(self.SID)
 
     def _sendRequest(self,c_meth,url,payload='',files=None):
         """
@@ -172,10 +177,16 @@ class CVPCON():
             if c_meth == "GET":
                 response = self.session.get("https://{}/".format(self.cvp_url) + url, json=payload, headers=self.headers, verify=False)
             elif c_meth == "POST" and files:
-                fheaders = {
-                    'Accept': 'application/json',
-                    'Cookie': 'session_id={}'.format(self.SID)
-                }
+                if 'access_token' in self.headers['Cookie']:
+                    fheaders = {
+                        'Accept': 'application/json',
+                        'Cookie': self.SID
+                    }
+                else:
+                    fheaders = {
+                        'Accept': 'application/json',
+                        'Cookie': 'session_id={}'.format(self.SID)
+                    }
                 response = self.session.post("https://{}/".format(self.cvp_url) + url, files=files, headers=fheaders, verify=False)
             else:
                 response = self.session.post("https://{}/".format(self.cvp_url) + url, json=payload, headers=self.headers, verify=False)
@@ -202,7 +213,9 @@ class CVPCON():
 
     def checkVersion(self):
         if self._checkSession():
-            return(self._sendRequest("GET",self.cvp_api['checkVersion']))
+            response = self._sendRequest("GET",self.cvp_api['checkVersion'])
+            if 'version' in response:
+                self.version = str(response['version'])
     
     def saveTopology(self):
         """
@@ -210,19 +223,7 @@ class CVPCON():
         """
         response = self._sendRequest("POST",self.cvp_api['saveTopo'],[])
         return(response)
-        
-    def getSID(self):
-        """
-        Function that authenticates to CVP and stores the session_id cookie to the headers for future calls.
-        """
-        payload = {
-            'userId':self.cvp_user,
-            'password':self.cvp_pwd
-        }
-        response = self._sendRequest("POST",self.cvp_api['authenticate'],payload)
-        self.headers['Cookie'] = 'session_id={}'.format(response['sessionId'])
-        return(response['sessionId'])
-    
+
     def execLogout(self):
         """
         Function to terminate CVP Session
