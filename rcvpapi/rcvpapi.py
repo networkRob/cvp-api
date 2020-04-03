@@ -159,8 +159,8 @@ class CVPCON():
         response = self.session.post("https://{0}/{1}".format(self.cvp_url, self.cvp_api['authenticate']), json=payload, verify=False, headers=self.headers)
         self.cookies = response.cookies
         if 'access_token' in response.cookies:
-            self.SID = str(response.json()['cookie']['Raw'])
-            self.headers['Cookie'] = str(response.json()['cookie']['Raw'])
+            self.SID = "{0}={1}".format(response.json()['cookie']['Name'], response.json()['cookie']['Value'])
+            self.headers['Cookie'] = self.SID
         else:
             self.SID = response.cookies['session_id']
             self.headers['Cookie'] = 'session_id={}'.format(self.SID)
