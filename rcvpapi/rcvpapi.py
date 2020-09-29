@@ -377,6 +377,15 @@ class CVPCON():
         response = self._sendRequest("GET",self.cvp_api['getAllTasks'] + "?queryparam={0}&startIndex=0&endIndex=0".format(t_type))
         self.tasks[t_type] = response['data']
     
+    def getRecentTasks(self, end_task=50):
+        """
+        Function that gets recent to the amount given for end_task.
+        Parameters:
+        end_task: Integer for the number of tasks wanted.
+        """
+        response = self._sendRequest("GET",self.cvp_api['getAllTasks'] + "?startIndex=0&endIndex={0}".format(end_task))
+        self.tasks['recent'] = response['data']
+    
     def execAllTasks(self,t_type):
         """
         Function that executes all tasks
