@@ -61,6 +61,9 @@ cvp_cnt.addDeviceInventory(['10.0.0.1','10.0.0.2'])
 # Get a list of any Task type
 cur_tasks = cvp_cnt.getAllTasks("Pending")
 
+# Get a list of the last 25 Tasks of any type
+recent_tasks = cvp_cnt.getRecentTasks(25)
+
 # Execute all tasks
 cvp_cnt.execAllTasks("Pending")
 
