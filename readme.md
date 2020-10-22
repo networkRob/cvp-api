@@ -9,7 +9,7 @@ This is a custom CVP API wrapper.  This module works using Python2 and Python3.
 This has been tested on CVP versions:
 - 2018.2.X
 - 2019.1.X
-- 2020.1.X (Beta Testing)
+- 2020.1.X
 
 ### Usage
 
