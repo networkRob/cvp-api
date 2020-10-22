@@ -1,5 +1,6 @@
 import requests, json
 from time import sleep
+from base64 import b64decode, b64encode
 
 class CVPSWITCH():
     def __init__(self,host,vx_ip,t_cnt=""):
@@ -124,6 +125,7 @@ class CVPCON():
             'createSnapshot': 'cvpservice/snapshot/templates/schedule',
             'getAllSnapshots': 'cvpservice/snapshot/templates',
             'getCertificate': 'cvpservice/ssl/getCertificate.do',
+            'importCertificate': 'cvpservice/ssl/importCertAndPrivateKey.do',
             'generateCertificate': 'cvpservice/ssl/generateCertificate.do',
             'installCertificate': 'cvpservice/ssl/installCertificate.do',
             'createServer': 'cvpservice/aaa/createServer.do',
@@ -209,6 +211,42 @@ class CVPCON():
             else:
                 return(False)
         else:
+            return(False)
+    
+    def _checkEncode(self, p_string):
+        """
+        Function to check if provided string is base64 encoded.
+        Parameters:
+        p_string = String to check (required)
+        """
+        try:
+            b64decode(p_string.encode()).decode()
+            return(True)
+        except:
+            return(False)
+    
+    def _encodeString(self, p_string):
+        """
+        Function to base64 encode a string.
+        Parameters:
+        p_string = String to encode (required)
+        """
+        try:
+            encoded_string = b64encode(p_string.encode()).decode()
+            return(encoded_string)
+        except:
+            return(False)
+
+    def _decodeString(self, p_string):
+        """
+        Function to base64 decode a string.
+        Parameters:
+        p_string = String to decode (required)
+        """
+        try:
+            encoded_string = b64decode(p_string.encode()).decode()
+            return(encoded_string)
+        except:
             return(False)
 
     def checkVersion(self):
@@ -832,6 +870,39 @@ class CVPCON():
         """
         response = self._sendRequest("GET",self.cvp_api['getCertificate'] + "?certType={}".format(certType))
         return(response)
+
+    def importCert(self, publicCert, privateKey, certPass="", certType="cvpCert"):
+        """
+        Function to import a custom certificate.
+        Parameters:
+        publicCert = (required)
+        privateKey = (required)
+        certPass = (optional)
+        certType = Type of cert (optional)
+            Options:
+                - cvpCert (default) self-signed
+                - csr
+                - dcaCert
+        """
+        # Check Cert type
+        if self._checkEncode(publicCert):
+            c_cert = publicCert
+        else:
+            c_cert = self._encodeString(publicCert)
+        # Check Key type
+        if self._checkEncode(privateKey):
+            c_key = privateKey
+        else:
+            c_key = self._encodeString(privateKey)
+        payload = {
+            "certType": certType,
+            "passPhrase": certPass,
+            "privateKey": c_key,
+            "publicCert": c_cert,
+        }
+        response = self._sendRequest("POST", self.cvp_api['importCertificate'], payload)
+        return(response)
+
 
     def generateCert(self, cName, organization, organizationUnit, description, validity):
         """
